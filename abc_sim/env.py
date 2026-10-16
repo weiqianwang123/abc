@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import copy
-import os
 from pathlib import Path
 import string
 from typing import Any, Optional
@@ -191,14 +190,12 @@ class MuJoCoYAMEnv(gym.Env):
     def setup_model(self):
         if self._scene_xml_string is not None:
             # Composed scene XML references assets relative to the bundled
-            # models directory, but MuJoCo resolves them against the process
-            # CWD — anchor it during compilation.
-            prev_cwd = os.getcwd()
-            os.chdir(Path(__file__).parent / "models")
-            try:
-                model = mujoco.MjModel.from_xml_string(self._scene_xml_string)
-            finally:
-                os.chdir(prev_cwd)
+            # models directory. Anchor the spec there rather than chdir-ing:
+            # the working directory is process-wide, so a chdir here moves
+            # every other thread's relative paths (parallel envs) too.
+            spec = mujoco.MjSpec.from_string(self._scene_xml_string)
+            spec.modelfiledir = str(Path(__file__).parent / "models")
+            model = spec.compile()
         else:
             model = mujoco.MjModel.from_xml_path(str(self._scene_xml))
         self._bind_model(model)
