@@ -23,6 +23,9 @@ class SweepRandomizer(SceneRandomizer):
     min_trash_count = 2
     default_trash_count = 3
     max_trash_count = 4
+    # A reset request may ask for one scrap (CDG's simplest sweep, 2026-11-07); the
+    # randomizer's own draw stays min_trash_count to max_trash_count.
+    min_requested_trash_count = 1
     _all_trash_joints = [f"trash_{i}_jnt" for i in range(1, 8)]
     _tool_joints = ("brush_jnt", "bin_joint", "dustpan_jnt")
     _trash_cluster_shift_x = (-0.03, 0.07)
@@ -134,18 +137,18 @@ class SweepRandomizer(SceneRandomizer):
             trash_count = int(rng.integers(self.min_trash_count, self.max_trash_count + 1))
         else:
             trash_count = int(request.trash_count)
-        if not self.min_trash_count <= trash_count <= self.max_trash_count:
+        if not self.min_requested_trash_count <= trash_count <= self.max_trash_count:
             raise ValueError(
-                f"Sweep trash_count must be in [{self.min_trash_count}, {self.max_trash_count}], "
-                f"got {trash_count}"
+                f"Sweep trash_count must be in [{self.min_requested_trash_count}, "
+                f"{self.max_trash_count}], got {trash_count}"
             )
         return trash_count
 
     def _set_active_trash_count(self, trash_count: int) -> None:
-        if not self.min_trash_count <= trash_count <= self.max_trash_count:
+        if not self.min_requested_trash_count <= trash_count <= self.max_trash_count:
             raise ValueError(
-                f"Sweep trash_count must be in [{self.min_trash_count}, {self.max_trash_count}], "
-                f"got {trash_count}"
+                f"Sweep trash_count must be in [{self.min_requested_trash_count}, "
+                f"{self.max_trash_count}], got {trash_count}"
             )
 
         self._trash_joints = list(self._all_trash_joints[:trash_count])
